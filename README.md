@@ -1,116 +1,126 @@
+# 🛡️ PhishGuard: AI-Powered Phishing Detection System
 
-🛡️ PhishGuard: AI-Powered Phishing Detection System
+**PhishGuard** is an intelligent phishing detection system powered by Machine Learning and real-time threat intelligence APIs. It safeguards users by analyzing suspicious URLs and predicting phishing threats instantly.
 
+---
 
-🔍 PhishGuard is an intelligent phishing detection  system that uses machine learning and real-time threat intelligence APIs to protect users from malicious URLs.
+## 🔍 Features
 
-🚀 Live Like a Cyber Shield
-PhishGuard doesn't just check links — it thinks. Built with a powerful XGBoost classifier and enriched with Google Safe Browsing and urlscan.io integrations, PhishGuard empowers users with:
+- ✅ Real-time phishing detection
+- ✅ 15+ URL-based feature extraction
+- ✅ ML-powered predictions with XGBoost
+- ✅ Google Safe Browsing API integration
+- ✅ urlscan.io threat intelligence
+- ✅ Confidence scoring for predictions
+- ✅ Responsive and beautiful web interface (React + Tailwind + DaisyUI)
 
-✅ Real-time phishing detection
-✅ Advanced URL feature extraction
-✅ Threat intelligence scanning
-✅ Confidence scoring
-✅ A beautiful and responsive web interface
+---
 
-🗂️ Project Structure
+## 🗂️ Project Structure
 
 PhishGuard-Phishing-Detection-System/
-├── backend/            # Django + DRF API server
-├── frontend/           # React + Tailwind + DaisyUI
-├── ml/                 # Machine learning model and feature extraction
-└── scripts/            # Automation scripts
-    ├── setup_api_keys.bat
-    └── run_app.bat
-
-🔧 Getting Started
-🛠 Prerequisites
-Python 3.8+
-
-Node.js & npm
-
-Google Safe Browsing API key
-
-urlscan.io API key
-
-🔐 API Integration
-Create a .env file inside the backend/ folder and add the following:
+├── backend/ # Django + DRF API server
+├── frontend/ # React + Tailwind + DaisyUI client
+├── ml/ # ML model and feature extraction logic
+├── scripts/ # Batch scripts for automation
+│ ├── setup_api_keys.bat
+│ └── run_app.bat
+└── README.md
 
 
-GOOGLE_SAFE_BROWSING_API_KEY=your_key_here
-URLSCAN_API_KEY=your_key_here
+---
 
-scripts/setup_api_keys.bat
-⚙️ Backend Setup (Django)
+## 🔧 Getting Started
+
+### 🛠 Prerequisites
+
+- Python 3.8+
+- Node.js & npm
+- API Keys for:
+  - [Google Safe Browsing](https://developers.google.com/safe-browsing/v4/get-started)
+  - [urlscan.io](https://urlscan.io/docs/api/)
+
+---
+
+## 🔐 API Key Setup
+
+Create a `.env` file inside the `backend/` folder:
+
+```env
+GOOGLE_SAFE_BROWSING_API_KEY=your_google_api_key_here
+URLSCAN_API_KEY=your_urlscan_api_key_here
+
+⚙️ Backend Setup (Django + DRF)
 
 cd backend
-
 python -m venv venv
-venv\Scripts\activate    # On Windows
-source venv/bin/activate # On Linux/Mac
+venv\Scripts\activate      # On Windows
+# OR
+source venv/bin/activate   # On Linux/Mac
+
 pip install -r requirements.txt
 python manage.py runserver
-🌐 Access the backend at http://localhost:8000
 
-🌐 Frontend Setup (React)
 
+🌐 Frontend Setup (React + Tailwind CSS)
 cd frontend
 npm install
 npm start
-💻 Frontend launches at http://localhost:3000
 
 ⚡ Quick Start (Windows Only)
-
 scripts/run_app.bat
-Starts both backend and frontend automatically.
+
 
 🧠 How It Works
-🔗 User enters a URL on the frontend
+User enters a URL
 
-📬 Frontend sends it to Django backend
+Frontend sends URL to Django backend
 
-🧬 Backend extracts 15+ features from the URL
+Backend extracts features from URL
 
-🔐 Sends it to:
+URL is scanned using:
 
-🛡️ Google Safe Browsing
+Google Safe Browsing
 
-🔍 urlscan.io
+urlscan.io
 
-🤖 XGBoost predicts phishing probability
+ML model (XGBoost) predicts phishing probability
 
-🎯 Prediction + Confidence score is displayed
+Result + confidence score is returned to frontend
 
-🌟 Features at a Glance
+📊 Tech Stack
+Layer	Tech
+Frontend	React, Tailwind CSS, DaisyUI
+Backend	Django, Django REST Framework
+ML Model	XGBoost
+APIs	Google Safe Browsing, urlscan.io
+Automation	Windows Batch Scripts
+
+🌟 Feature Highlights
 Feature	Description
-⚡ Instant Predictions	Real-time feedback on URL safety
-🧠 ML Intelligence	XGBoost classification model
-🔍 Safe Browsing Check	Google Safe Browsing API integration
-🛰️ urlscan.io Integration	Scan-based threat intelligence
-🎨 Beautiful UI	React + Tailwind + DaisyUI interface
-📊 Confidence Score	Prediction certainty visualized for transparency
+⚡ Instant Predictions	Real-time phishing probability analysis
+🧠 ML Intelligence	XGBoost classifier trained on URL features
+🔍 Safe Browsing Check	Checks against Google's threat database
+🛰️ urlscan.io Integration	External scan for threat indicators
+🎨 Beautiful UI	Tailwind-powered responsive interface
+📊 Confidence Score	Transparent scoring of prediction certainty
 
-📦 Tech Stack
-Frontend: React, Tailwind CSS, DaisyUI
-Backend: Django, Django REST Framework
-Machine Learning: XGBoost
-APIs: Google Safe Browsing, urlscan.io
-Automation: Batch scripts for setup and launch
 
 🔮 Future Scope
+🔐 User authentication + history tracking
 
-🔐 User Authentication & History Logs
+🧠 Deep Learning-based models
 
-🧠 Deep Learning Model Integration
+☁️ Cloud deployment (Heroku, GCP, or AWS)
 
-☁️ Cloud Deployment (AWS/GCP/Heroku)
+🧩 Chrome Extension for URL scanning
 
-🧩 Chrome Extension for On-the-Fly URL Scans
+🤝 Contributing
+Pull requests are welcome! 🎉
+Whether you're improving UI, adding new ML features, or optimizing backend code — PhishGuard grows with your contributions.
 
+📄 License
+MIT License. See LICENSE for details.
 
-
-
-🤝 Contribute
-Pull requests are welcome! Whether you're improving the UI, suggesting a new model, or optimizing performance—PhishGuard grows with your help. 🌱
 
 
