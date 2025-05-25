@@ -17,7 +17,7 @@
 ---
 
 ## 🗂️ Project Structure
-
+```
 PhishGuard-Phishing-Detection-System/
 ├── backend/ # Django + DRF API server
 ├── frontend/ # React + Tailwind + DaisyUI client
@@ -26,9 +26,9 @@ PhishGuard-Phishing-Detection-System/
 │ ├── setup_api_keys.bat
 │ └── run_app.bat
 └── README.md
+```
 
 
----
 
 ## 🔧 Getting Started
 
