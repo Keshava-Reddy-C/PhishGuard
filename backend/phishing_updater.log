@@ -16,3 +16,21 @@
 2025-05-25 11:30:25,577 - root - INFO - Starting phishing database update
 2025-05-25 11:30:25,577 - root - INFO - Phishing database updater thread started
 2025-05-25 11:30:27,434 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-10-17 10:42:14,120 - root - INFO - Starting phishing database update
+2025-10-17 10:42:14,120 - root - INFO - Phishing database updater thread started
+2025-10-17 10:44:04,776 - root - INFO - Starting phishing database update
+2025-10-17 10:44:04,777 - root - INFO - Phishing database updater thread started
+2025-10-17 10:44:38,754 - root - INFO - Starting phishing database update
+2025-10-17 10:44:38,754 - root - INFO - Phishing database updater thread started
+2025-10-17 10:44:39,266 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-10-17 10:45:50,663 - root - INFO - Starting phishing database update
+2025-10-17 10:45:50,663 - root - INFO - Phishing database updater thread started
+2025-10-17 10:45:51,133 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-10-17 10:47:15,394 - root - INFO - Starting phishing database update
+2025-10-17 10:47:15,394 - root - INFO - Phishing database updater thread started
+2025-10-17 10:47:59,999 - root - INFO - Starting phishing database update
+2025-10-17 10:47:59,999 - root - INFO - Phishing database updater thread started
+2025-10-17 10:48:00,424 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-10-17 10:51:41,609 - root - INFO - Starting phishing database update
+2025-10-17 10:51:41,609 - root - INFO - Phishing database updater thread started
+2025-10-17 10:51:42,294 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable

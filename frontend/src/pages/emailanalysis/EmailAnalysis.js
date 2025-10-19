@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Container, Card, Form, Button, Alert, Spinner, Badge, Row, Col, Table, Nav, Tab } from 'react-bootstrap';
 import './EmailAnalysis.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 const EmailAnalysis = () => {
   const [formData, setFormData] = useState({

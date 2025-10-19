@@ -41,8 +41,8 @@ function CheckUrl() {
 
     if (checkLink(formattedUrl)) {
       setLoading(true);
-      // Use environment variable or fallback to local development server
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      // Use environment variable or fallback to proxy (relative URL)
+      const apiUrl = process.env.REACT_APP_API_URL || '';
       axios
         .get(
           `${apiUrl}/api/?url=${encodeURIComponent(formattedUrl)}`
