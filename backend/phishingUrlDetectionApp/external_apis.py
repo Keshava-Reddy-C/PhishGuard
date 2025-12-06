@@ -16,11 +16,175 @@ from urllib.parse import urlparse, quote
 class ExternalApiChecker:
     def __init__(self):
         """Initialize the external API checker with API keys from environment variables."""
+        # Priority APIs (checked first)
+        self.google_safebrowsing_api_key = os.environ.get('GOOGLE_SAFEBROWSING_API_KEY', '')
+        self.urlscan_api_key = os.environ.get('URLSCAN_API_KEY', '')
+        
+        # Secondary APIs
         self.virustotal_api_key = os.environ.get('VIRUSTOTAL_API_KEY', '')
         self.cloudflare_api_key = os.environ.get('CLOUDFLARE_API_KEY', '')
         self.cloudflare_email = os.environ.get('CLOUDFLARE_EMAIL', '')
         self.xforce_api_key = os.environ.get('IBM_XFORCE_API_KEY', '')
         self.xforce_api_password = os.environ.get('IBM_XFORCE_API_PASSWORD', '')
+    
+    def check_google_safebrowsing(self, url: str) -> Dict[str, Any]:
+        """
+        Check a URL against Google Safe Browsing API.
+        
+        Args:
+            url: The URL to check
+            
+        Returns:
+            Dict with results including is_phishing boolean and confidence score
+        """
+        if not self.google_safebrowsing_api_key:
+            return {'status': 'error', 'message': 'Google Safe Browsing API key not configured'}
+        
+        try:
+            api_url = f'https://safebrowsing.googleapis.com/v4/threatMatches:find?key={self.google_safebrowsing_api_key}'
+            
+            payload = {
+                'client': {
+                    'clientId': 'phishguard',
+                    'clientVersion': '1.5.0'
+                },
+                'threatInfo': {
+                    'threatTypes': [
+                        'MALWARE', 
+                        'SOCIAL_ENGINEERING',  # Phishing
+                        'UNWANTED_SOFTWARE',
+                        'POTENTIALLY_HARMFUL_APPLICATION'
+                    ],
+                    'platformTypes': ['ANY_PLATFORM'],
+                    'threatEntryTypes': ['URL'],
+                    'threatEntries': [{'url': url}]
+                }
+            }
+            
+            response = requests.post(api_url, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Check if any threats were found
+                if 'matches' in result and len(result['matches']) > 0:
+                    threat_types = [match.get('threatType', '') for match in result['matches']]
+                    
+                    # SOCIAL_ENGINEERING is specifically for phishing
+                    is_phishing = 'SOCIAL_ENGINEERING' in threat_types or 'MALWARE' in threat_types
+                    
+                    return {
+                        'status': 'success',
+                        'is_phishing': is_phishing,
+                        'confidence': 0.97,  # Google Safe Browsing is highly reliable
+                        'threat_types': threat_types,
+                        'source': 'google_safebrowsing'
+                    }
+                else:
+                    # No threats found - URL is safe
+                    return {
+                        'status': 'success',
+                        'is_phishing': False,
+                        'confidence': 0.95,
+                        'message': 'No threats found',
+                        'source': 'google_safebrowsing'
+                    }
+            
+            return {'status': 'error', 'message': f"HTTP Error: {response.status_code}"}
+            
+        except Exception as e:
+            return {'status': 'error', 'message': f"Exception: {str(e)}"}
+    
+    def check_urlscan(self, url: str) -> Dict[str, Any]:
+        """
+        Check a URL against URLScan.io API.
+        
+        Args:
+            url: The URL to check
+            
+        Returns:
+            Dict with results including is_phishing boolean and confidence score
+        """
+        if not self.urlscan_api_key:
+            return {'status': 'error', 'message': 'URLScan.io API key not configured'}
+        
+        try:
+            headers = {
+                'API-Key': self.urlscan_api_key,
+                'Content-Type': 'application/json'
+            }
+            
+            # Step 1: Submit URL for scanning
+            submit_url = 'https://urlscan.io/api/v1/scan/'
+            payload = {
+                'url': url,
+                'visibility': 'public'
+            }
+            
+            response = requests.post(submit_url, headers=headers, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                scan_id = result.get('uuid', '')
+                
+                if not scan_id:
+                    return {'status': 'error', 'message': 'No scan ID returned'}
+                
+                # Step 2: Wait a bit for the scan to complete (URLScan.io takes a few seconds)
+                time.sleep(3)
+                
+                # Step 3: Retrieve scan results
+                result_url = f'https://urlscan.io/api/v1/result/{scan_id}/'
+                result_response = requests.get(result_url, timeout=15)
+                
+                if result_response.status_code == 200:
+                    scan_result = result_response.json()
+                    
+                    # Analyze verdicts
+                    verdicts = scan_result.get('verdicts', {})
+                    overall = verdicts.get('overall', {})
+                    
+                    # Check malicious score
+                    malicious = overall.get('malicious', False)
+                    score = overall.get('score', 0)  # Score from 0-100
+                    
+                    # URLScan categories
+                    categories = overall.get('categories', [])
+                    
+                    # Determine if phishing
+                    is_phishing = malicious or score >= 50 or 'phishing' in str(categories).lower()
+                    
+                    # Calculate confidence based on score
+                    if score >= 80:
+                        confidence = 0.95
+                    elif score >= 50:
+                        confidence = 0.85
+                    elif score >= 30:
+                        confidence = 0.70
+                    else:
+                        confidence = 0.90 if not is_phishing else 0.60
+                    
+                    return {
+                        'status': 'success',
+                        'is_phishing': is_phishing,
+                        'confidence': confidence,
+                        'malicious_score': score,
+                        'categories': categories,
+                        'source': 'urlscan'
+                    }
+                elif result_response.status_code == 404:
+                    # Scan not ready yet - treat as inconclusive
+                    return {'status': 'pending', 'message': 'Scan in progress'}
+                else:
+                    return {'status': 'error', 'message': f"Result fetch error: {result_response.status_code}"}
+            
+            elif response.status_code == 429:
+                return {'status': 'error', 'message': 'Rate limit exceeded'}
+            else:
+                return {'status': 'error', 'message': f"Submission error: {response.status_code}"}
+            
+        except Exception as e:
+            return {'status': 'error', 'message': f"Exception: {str(e)}"}
     
     def check_virustotal(self, url: str) -> Dict[str, Any]:
         """
@@ -218,6 +382,7 @@ class ExternalApiChecker:
     def check_all_apis(self, url: str) -> Dict[str, Any]:
         """
         Check a URL against all configured external APIs.
+        Priority: Google Safe Browsing > URLScan.io > VirusTotal > X-Force > Cloudflare
         
         Args:
             url: The URL to check
@@ -227,7 +392,35 @@ class ExternalApiChecker:
         """
         results = {}
         
-        # Check VirusTotal first if configured
+        # PRIORITY 1: Check Google Safe Browsing first (most reliable for phishing)
+        if self.google_safebrowsing_api_key:
+            gsb_result = self.check_google_safebrowsing(url)
+            results['google_safebrowsing'] = gsb_result
+            
+            # If we get a definitive result (high confidence), use it immediately
+            if gsb_result.get('status') == 'success' and gsb_result.get('confidence', 0) >= 0.95:
+                return {
+                    'is_phishing': gsb_result.get('is_phishing', False),
+                    'confidence': gsb_result.get('confidence', 0),
+                    'source': 'google_safebrowsing',
+                    'details': results
+                }
+        
+        # PRIORITY 2: Check URLScan.io (comprehensive analysis)
+        if self.urlscan_api_key:
+            urlscan_result = self.check_urlscan(url)
+            results['urlscan'] = urlscan_result
+            
+            # If we get a definitive result, use that
+            if urlscan_result.get('status') == 'success' and urlscan_result.get('confidence', 0) >= 0.85:
+                return {
+                    'is_phishing': urlscan_result.get('is_phishing', False),
+                    'confidence': urlscan_result.get('confidence', 0),
+                    'source': 'urlscan',
+                    'details': results
+                }
+        
+        # PRIORITY 3: Check VirusTotal if configured
         if self.virustotal_api_key:
             vt_result = self.check_virustotal(url)
             results['virustotal'] = vt_result
@@ -241,7 +434,7 @@ class ExternalApiChecker:
                     'details': results
                 }
         
-        # Check IBM X-Force if configured
+        # PRIORITY 4: Check IBM X-Force if configured
         if self.xforce_api_key and self.xforce_api_password:
             xforce_result = self.check_xforce(url)
             results['xforce'] = xforce_result
@@ -255,7 +448,7 @@ class ExternalApiChecker:
                     'details': results
                 }
         
-        # Check Cloudflare last if configured
+        # PRIORITY 5: Check Cloudflare last if configured
         if self.cloudflare_api_key and self.cloudflare_email:
             cf_result = self.check_cloudflare(url)
             results['cloudflare'] = cf_result

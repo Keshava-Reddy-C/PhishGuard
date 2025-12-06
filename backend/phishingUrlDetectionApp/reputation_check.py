@@ -33,6 +33,9 @@ class ReputationChecker:
         # Load trusted domains for typosquatting checks
         self.trusted_domains = self._get_trusted_domains()
         
+        # Load known malicious domains blacklist
+        self.malicious_domains = self._load_malicious_domains()
+        
     def _init_cache_db(self):
         """Initialize the SQLite database for caching reputation data"""
         conn = sqlite3.connect(self.db_path)
@@ -88,6 +91,25 @@ class ReputationChecker:
         conn.close()
         return known_domains
         
+    def _load_malicious_domains(self):
+        """Load known malicious domains from blacklist file"""
+        malicious_file = os.path.join(os.path.dirname(__file__), 'malicious_domains.txt')
+        malicious = set()
+        
+        try:
+            if os.path.exists(malicious_file):
+                with open(malicious_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        # Skip comments and empty lines
+                        if line and not line.startswith('#'):
+                            malicious.add(line.lower())
+                print(f"Loaded {len(malicious)} malicious domains from blacklist")
+        except Exception as e:
+            print(f"Error loading malicious domains: {e}")
+        
+        return malicious
+    
     def _get_trusted_domains(self):
         """Get list of trusted domains for typosquatting checks"""
         # Major search engines and email providers
@@ -132,9 +154,19 @@ class ReputationChecker:
         Returns:
             dict: Result with 'is_phishing' boolean and 'source' of determination
         """
+        # Validate URL input
+        if not url or not isinstance(url, str):
+            return None
+            
         # Extract domain for domain-based checks
         parsed_url = urlparse(url)
-        domain = parsed_url.netloc.lower()
+        domain = parsed_url.netloc
+        
+        # Handle bytes vs string
+        if isinstance(domain, bytes):
+            domain = domain.decode('utf-8', errors='ignore')
+        
+        domain = domain.lower()
         
         # Remove 'www.' if present
         if domain.startswith('www.'):
@@ -153,6 +185,19 @@ class ReputationChecker:
         # Check known phishing domains set (in-memory cache)
         if domain in self.known_phishing_domains:
             return {'is_phishing': True, 'source': 'cached_phishing_list', 'confidence': 0.9}
+        
+        # NEW: Check against malicious domains blacklist
+        if domain in self.malicious_domains:
+            print(f"Domain {domain} found in malicious blacklist!")
+            self._update_cache(url, domain, True, 'malicious_blacklist')
+            return {'is_phishing': True, 'source': 'malicious_blacklist', 'confidence': 0.98}
+        
+        # Also check if any part of the domain matches malicious patterns
+        for malicious in self.malicious_domains:
+            if malicious in domain or domain in malicious:
+                print(f"Domain {domain} matches malicious pattern: {malicious}")
+                self._update_cache(url, domain, True, 'malicious_pattern_match')
+                return {'is_phishing': True, 'source': 'malicious_pattern_match', 'confidence': 0.95}
         
         # NEW: Check for homograph attacks (Unicode tricks)
         if check_homograph_attack(domain):

@@ -55,10 +55,10 @@ const EmailAnalysis = () => {
   };
   
   const renderAuthenticationSection = () => {
-    if (!result) return null;
+    if (!result || !result.header_analysis) return null;
     
     const { header_analysis } = result;
-    const authResults = header_analysis.authentication_results;
+    const authResults = header_analysis.authentication_results || {};
     
     return (
       <Card className="mt-4 email-auth-card">
@@ -92,9 +92,10 @@ const EmailAnalysis = () => {
   };
   
   const renderHeaderAnalysis = () => {
-    if (!result) return null;
+    if (!result || !result.header_analysis) return null;
     
     const { header_analysis } = result;
+    const parsedHeaders = header_analysis.parsed_headers || {};
     
     return (
       <div>
@@ -115,27 +116,27 @@ const EmailAnalysis = () => {
               <tbody>
                 <tr>
                   <td>From</td>
-                  <td>{header_analysis.parsed_headers.from || 'N/A'}</td>
+                  <td>{parsedHeaders.from || 'N/A'}</td>
                 </tr>
                 <tr>
                   <td>To</td>
-                  <td>{header_analysis.parsed_headers.to || 'N/A'}</td>
+                  <td>{parsedHeaders.to || 'N/A'}</td>
                 </tr>
                 <tr>
                   <td>Subject</td>
-                  <td>{header_analysis.parsed_headers.subject || 'N/A'}</td>
+                  <td>{parsedHeaders.subject || 'N/A'}</td>
                 </tr>
                 <tr>
                   <td>Date</td>
-                  <td>{header_analysis.parsed_headers.date || 'N/A'}</td>
+                  <td>{parsedHeaders.date || 'N/A'}</td>
                 </tr>
                 <tr>
                   <td>Reply-To</td>
-                  <td>{header_analysis.parsed_headers.reply_to || 'N/A'}</td>
+                  <td>{parsedHeaders.reply_to || 'N/A'}</td>
                 </tr>
                 <tr>
                   <td>Return-Path</td>
-                  <td>{header_analysis.parsed_headers.return_path || 'N/A'}</td>
+                  <td>{parsedHeaders.return_path || 'N/A'}</td>
                 </tr>
               </tbody>
             </Table>
@@ -146,7 +147,7 @@ const EmailAnalysis = () => {
   };
   
   const renderContentAnalysis = () => {
-    if (!result) return null;
+    if (!result || !result.content_analysis) return null;
     
     const { content_analysis } = result;
     
@@ -212,9 +213,12 @@ const EmailAnalysis = () => {
     if (!result) return null;
     
     const { header_analysis, content_analysis } = result;
+    const headerIndicators = header_analysis?.suspicious_indicators || [];
+    const contentIndicators = content_analysis?.suspicious_indicators || [];
+    
     const allIndicators = [
-      ...header_analysis.suspicious_indicators.map(i => ({ ...i, source: 'Header' })),
-      ...content_analysis.suspicious_indicators.map(i => ({ ...i, source: 'Content' }))
+      ...headerIndicators.map(i => ({ ...i, source: 'Header' })),
+      ...contentIndicators.map(i => ({ ...i, source: 'Content' }))
     ];
     
     return (
@@ -266,7 +270,11 @@ const EmailAnalysis = () => {
   };
   
   const renderResultSummary = () => {
-    if (!result) return null;
+    if (!result || !result.overall) return null;
+    
+    const overall = result.overall || {};
+    const headerAnalysis = result.header_analysis || {};
+    const contentAnalysis = result.content_analysis || {};
     
     return (
       <Card className="mt-4 mb-4 result-summary-card">
@@ -278,24 +286,24 @@ const EmailAnalysis = () => {
             <h5>Overall Risk Level</h5>
             <Badge
               pill
-              bg={getBadgeVariant(result.risk_level)}
+              bg={getBadgeVariant(overall.risk_level || 'Unknown')}
               className="risk-badge"
             >
-              {result.risk_level}
+              {overall.risk_level || 'Unknown'}
             </Badge>
             
             <div className="mt-4">
-              <h5>Risk Score: {Math.round(result.combined_risk_score)}/100</h5>
+              <h5>Risk Score: {Math.round(overall.risk_score || 0)}/100</h5>
               <div className="progress" style={{ height: '30px' }}>
                 <div
-                  className={`progress-bar bg-${getProgressBarVariant(result.combined_risk_score)}`}
+                  className={`progress-bar bg-${getProgressBarVariant(overall.risk_score || 0)}`}
                   role="progressbar"
-                  style={{ width: `${result.combined_risk_score}%` }}
-                  aria-valuenow={result.combined_risk_score}
+                  style={{ width: `${overall.risk_score || 0}%` }}
+                  aria-valuenow={overall.risk_score || 0}
                   aria-valuemin="0"
                   aria-valuemax="100"
                 >
-                  {Math.round(result.combined_risk_score)}%
+                  {Math.round(overall.risk_score || 0)}%
                 </div>
               </div>
             </div>
@@ -307,10 +315,10 @@ const EmailAnalysis = () => {
                 <h5>Header Risk Score</h5>
                 <Badge
                   pill
-                  bg={getBadgeVariant(result.header_analysis.risk_level)}
+                  bg={getBadgeVariant(headerAnalysis.risk_level || 'Unknown')}
                   className="score-badge"
                 >
-                  {result.header_analysis.risk_score}/100
+                  {headerAnalysis.risk_score || 0}/100
                 </Badge>
               </div>
             </Col>
@@ -319,10 +327,10 @@ const EmailAnalysis = () => {
                 <h5>Content Risk Score</h5>
                 <Badge
                   pill
-                  bg={getBadgeVariant(result.content_analysis.risk_level)}
+                  bg={getBadgeVariant(contentAnalysis.risk_level || 'Unknown')}
                   className="score-badge"
                 >
-                  {result.content_analysis.risk_score}/100
+                  {contentAnalysis.risk_score || 0}/100
                 </Badge>
               </div>
             </Col>
