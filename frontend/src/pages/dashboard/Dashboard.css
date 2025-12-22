@@ -7,26 +7,63 @@
 .dashboard-title {
   color: var(--text-color);
   font-size: 1.75rem;
-  font-weight: 600;
+  font-weight: 800;
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   gap: 10px;
+  background: linear-gradient(135deg, #ffffff 0%, #a78bfa 50%, #7e3af2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Card styling */
 .card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(28, 31, 38, 0.8) 100%);
+  border: 1px solid rgba(126, 58, 242, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(126, 58, 242, 0.15);
+  border-color: rgba(126, 58, 242, 0.2);
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .card-header {
-  background-color: var(--card-header-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, var(--card-header-bg) 0%, rgba(37, 37, 37, 0.8) 100%);
+  border-bottom: 1px solid rgba(126, 58, 242, 0.1);
   padding: 1rem 1.25rem;
+  border-radius: 16px 16px 0 0;
 }
 
 .card-title {
@@ -49,6 +86,22 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #7e3af2 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: scaleIn 0.6s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .threat-count {
@@ -59,7 +112,11 @@
 .count-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--text-color);
+  background: linear-gradient(135deg, #7e3af2 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: scaleIn 0.6s ease-out 0.2s both;
 }
 
 .success-text {
@@ -244,13 +301,13 @@
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+    box-shadow: 0 0 0 0 rgba(126, 58, 242, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 10px rgba(126, 58, 242, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 0 rgba(126, 58, 242, 0);
   }
 }
 

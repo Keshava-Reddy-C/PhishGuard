@@ -4,6 +4,7 @@ import "./CheckUrl.css";
 // Import icons for legitimate and phishing indicators
 import LegitIcon from "../../assets/png/check24.png";
 import PhishIcon from "../../assets/png/cross24.png";
+import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
 
 function CheckUrl() {
   const [inputUrl, setInputUrl] = useState("");
@@ -30,25 +31,46 @@ function CheckUrl() {
     setError("");
     setShowResults(false);
 
-    if (!inputUrl) {
+    if (!inputUrl || inputUrl.trim() === "") {
       setError("Please enter a URL");
       return;
     }
 
-    const formattedUrl = inputUrl.startsWith('http://') || inputUrl.startsWith('https://') 
-      ? inputUrl 
-      : `https://${inputUrl}`;
+    // Trim whitespace
+    const trimmedUrl = inputUrl.trim();
+    
+    // Add protocol if missing
+    const formattedUrl = trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://') 
+      ? trimmedUrl 
+      : `https://${trimmedUrl}`;
+
+    // Basic URL validation
+    try {
+      new URL(formattedUrl);
+    } catch (e) {
+      setError("Please enter a valid URL (e.g., example.com or https://example.com)");
+      return;
+    }
 
     if (checkLink(formattedUrl)) {
       setLoading(true);
+      console.log('Analyzing URL:', formattedUrl);
+      
       // Use environment variable or fallback to proxy (relative URL)
       const apiUrl = process.env.REACT_APP_API_URL || '';
+      const requestUrl = `${apiUrl}/api/?url=${encodeURIComponent(formattedUrl)}`;
+      
+      console.log('Request URL:', requestUrl);
+      
       axios
-        .get(
-          `${apiUrl}/api/?url=${encodeURIComponent(formattedUrl)}`
-        )
+        .get(requestUrl, {
+          timeout: 30000, // 30 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
         .then((res) => {
-          console.log(res.data);
+          console.log('Response received:', res.data);
           
           // Ensure the response has all required fields with defaults if missing
           const safeResponse = {
@@ -65,13 +87,24 @@ function CheckUrl() {
           setShowResults(true);
         })
         .catch((err) => {
-          console.log(err);
+          console.error('Error details:', err);
           setLoading(false);
-          setError("Error connecting to the server. Please make sure the backend is running.");
+          
+          if (err.code === 'ECONNABORTED') {
+            setError("Request timeout. The analysis is taking too long. Please try again.");
+          } else if (err.response) {
+            // Server responded with error
+            setError(`Server error: ${err.response.status}. ${err.response.data?.error || 'Please try again.'}`);
+          } else if (err.request) {
+            // Request made but no response
+            setError("Cannot connect to the server. Please ensure the backend is running on http://localhost:8000");
+          } else {
+            setError("An error occurred. Please try again.");
+          }
         });
     } else {
-      console.log("not an url");
-      setError("Please enter a valid URL including the protocol (http:// or https://)");
+      console.log("Invalid URL format");
+      setError("Please enter a valid URL (e.g., example.com or https://example.com)");
       setLoading(false);
     }
   };
@@ -155,9 +188,15 @@ function CheckUrl() {
             className="url-input"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                checkUrlHandler();
+              }
+            }}
             placeholder="Enter a URL to analyze..."
+            disabled={loading}
           />
-          <button className="search-btn" onClick={checkUrlHandler}>
+          <button className="search-btn" onClick={checkUrlHandler} disabled={loading}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" stroke="currentColor" fill="none"/>
             </svg>
@@ -168,10 +207,10 @@ function CheckUrl() {
       </div>
 
       {loading && (
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Analyzing URL security...</p>
-        </div>
+        <LoadingSpinner 
+          message="Analyzing URL Security..." 
+          subtext="Checking against multiple security databases and ML models"
+        />
       )}
 
       {showResults && (

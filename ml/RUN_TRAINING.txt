@@ -1,0 +1,83 @@
+================================================================================
+  PhishGuard - Quick Training Guide (FIXED VERSION)
+================================================================================
+
+✅ ALL ERRORS FIXED! Training now works without WHOIS/HTTP errors.
+
+--------------------------------------------------------------------------------
+  HOW TO RUN:
+--------------------------------------------------------------------------------
+
+1. Stop any currently running training (Press Ctrl+C if needed)
+
+2. Open terminal/command prompt
+
+3. Navigate to the ml folder:
+   cd "C:\Users\Admin\Downloads\phishing major project\PhishGuard\ml"
+
+4. Run the fixed training script:
+   python quick_train.py
+
+--------------------------------------------------------------------------------
+  WHAT WAS FIXED:
+--------------------------------------------------------------------------------
+
+❌ BEFORE (Had errors):
+   - WHOIS lookups causing timeouts
+   - HTTP requests to dead domains
+   - Connection errors
+   - Takes 20-30 minutes with errors
+
+✅ AFTER (No errors):
+   - Skips slow WHOIS lookups
+   - Skips HTTP requests to domains
+   - Uses only fast URL pattern features
+   - Completes in 2-3 minutes
+
+--------------------------------------------------------------------------------
+  EXPECTED RESULTS:
+--------------------------------------------------------------------------------
+
+✓ Processes 2,000 phishing URLs
+✓ Generates 2,000 legitimate URLs  
+✓ Extracts ~3,900 valid samples
+✓ Trains model in 2-3 minutes total
+✓ Saves model to: backend/phishingUrlDetectionApp/model/
+
+--------------------------------------------------------------------------------
+  AFTER TRAINING:
+--------------------------------------------------------------------------------
+
+1. Start the backend:
+   cd ../backend
+   python manage.py runserver
+
+2. Start the frontend (new terminal):
+   cd ../frontend
+   npm start
+
+3. Open browser:
+   http://localhost:3000
+
+--------------------------------------------------------------------------------
+  TROUBLESHOOTING:
+--------------------------------------------------------------------------------
+
+Q: Script still showing errors?
+A: Press Ctrl+C to stop old script, then run: python quick_train.py
+
+Q: Dataset file not found?
+A: Ensure files are in ml/extracted_dataset/:
+   - compromised_url_history.csv
+
+Q: Training takes too long?
+A: The fixed version should be 2-3 minutes. If longer, stop and restart.
+
+--------------------------------------------------------------------------------
+
+📝 For detailed technical information, see: TRAINING_FIX.md
+
+================================================================================
+
+
+

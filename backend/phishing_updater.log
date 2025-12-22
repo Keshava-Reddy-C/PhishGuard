@@ -34,3 +34,119 @@
 2025-10-17 10:51:41,609 - root - INFO - Starting phishing database update
 2025-10-17 10:51:41,609 - root - INFO - Phishing database updater thread started
 2025-10-17 10:51:42,294 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-04 16:49:46,587 - root - INFO - Starting phishing database update
+2025-12-04 16:49:46,587 - root - INFO - Phishing database updater thread started
+2025-12-04 16:50:14,211 - root - INFO - Starting phishing database update
+2025-12-04 16:50:14,211 - root - INFO - Phishing database updater thread started
+2025-12-04 16:58:47,285 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-04 16:59:09,272 - django.request - WARNING - Not Found: /logo192.png
+2025-12-04 22:47:31,045 - root - INFO - Starting phishing database update
+2025-12-04 22:47:31,045 - root - INFO - Phishing database updater thread started
+2025-12-04 22:47:31,045 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-04 22:48:18,255 - root - INFO - Starting phishing database update
+2025-12-04 22:48:18,257 - root - INFO - Phishing database updater thread started
+2025-12-04 22:48:18,259 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-04 22:48:57,046 - root - INFO - Starting phishing database update
+2025-12-04 22:48:57,046 - root - INFO - Phishing database updater thread started
+2025-12-04 22:48:57,046 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 11:45:19,183 - root - INFO - Starting phishing database update
+2025-12-05 11:45:19,189 - root - INFO - Phishing database updater thread started
+2025-12-05 11:45:21,510 - django.request - ERROR - Internal Server Error: /api/
+Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\handlers\exception.py", line 56, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\views\decorators\csrf.py", line 55, in wrapped_view
+    return view_func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\views\generic\base.py", line 84, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\views.py", line 134, in get
+    reputation_result = check_url_reputation(url)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py", line 478, in check_url_reputation
+    return reputation_checker.check_url(url)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py", line 140, in check_url
+    if domain.startswith('www.'):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: startswith first arg must be bytes or a tuple of bytes, not str
+2025-12-05 11:52:31,214 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 11:57:54,111 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py changed, reloading.
+2025-12-05 11:57:57,957 - root - INFO - Starting phishing database update
+2025-12-05 11:57:57,957 - root - INFO - Phishing database updater thread started
+2025-12-05 11:57:57,959 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 11:58:39,338 - root - INFO - Starting phishing database update
+2025-12-05 11:58:39,338 - root - INFO - Phishing database updater thread started
+2025-12-05 11:58:39,362 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 11:59:24,141 - django.request - WARNING - Not Found: /logo192.png
+2025-12-05 12:03:11,845 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py changed, reloading.
+2025-12-05 12:03:21,518 - root - INFO - Starting phishing database update
+2025-12-05 12:03:21,518 - root - INFO - Phishing database updater thread started
+2025-12-05 12:03:21,526 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 12:04:50,393 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py changed, reloading.
+2025-12-05 13:34:32,773 - root - INFO - Starting phishing database update
+2025-12-05 13:34:32,773 - root - INFO - Phishing database updater thread started
+2025-12-05 13:34:32,779 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 13:38:01,263 - django.request - WARNING - Not Found: /logo192.png
+2025-12-05 13:56:40,527 - django.request - WARNING - Not Found: /logo192.png
+2025-12-05 14:00:30,039 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\views.py changed, reloading.
+2025-12-05 14:00:40,518 - root - INFO - Starting phishing database update
+2025-12-05 14:00:40,518 - root - INFO - Phishing database updater thread started
+2025-12-05 14:00:40,537 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 14:02:23,899 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\views.py changed, reloading.
+2025-12-05 14:02:33,097 - root - INFO - Starting phishing database update
+2025-12-05 14:02:33,097 - root - INFO - Phishing database updater thread started
+2025-12-05 14:02:33,104 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 14:16:06,082 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\reputation_check.py changed, reloading.
+2025-12-05 14:16:15,722 - root - INFO - Starting phishing database update
+2025-12-05 14:16:15,723 - root - INFO - Phishing database updater thread started
+2025-12-05 14:16:15,725 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-05 14:16:40,953 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\views.py changed, reloading.
+2025-12-06 05:26:26,326 - root - INFO - Starting phishing database update
+2025-12-06 05:26:26,326 - root - INFO - Phishing database updater thread started
+2025-12-06 05:26:28,227 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 05:40:29,199 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 09:52:13,197 - root - INFO - Starting phishing database update
+2025-12-06 09:52:13,197 - root - INFO - Phishing database updater thread started
+2025-12-06 09:52:18,619 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 09:52:19,821 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 09:52:43,583 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 09:54:02,733 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 10:05:24,884 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 10:35:02,220 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 11:19:42,067 - django.request - WARNING - Not Found: /logo192.png
+2025-12-06 12:33:09,123 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\feature.py changed, reloading.
+2025-12-06 12:33:16,052 - root - INFO - Starting phishing database update
+2025-12-06 12:33:16,052 - root - INFO - Phishing database updater thread started
+2025-12-06 12:33:19,950 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\feature.py changed, reloading.
+2025-12-06 12:33:26,628 - root - INFO - Starting phishing database update
+2025-12-06 12:33:26,628 - root - INFO - Phishing database updater thread started
+2025-12-06 12:33:29,854 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 12:33:32,043 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\feature.py changed, reloading.
+2025-12-06 12:33:38,882 - root - INFO - Starting phishing database update
+2025-12-06 12:33:38,882 - root - INFO - Phishing database updater thread started
+2025-12-06 12:33:40,949 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 12:33:42,915 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\feature.py changed, reloading.
+2025-12-06 12:33:49,589 - root - INFO - Starting phishing database update
+2025-12-06 12:33:49,589 - root - INFO - Phishing database updater thread started
+2025-12-06 12:33:52,049 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 12:33:53,487 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\feature.py changed, reloading.
+2025-12-06 12:34:00,033 - root - INFO - Starting phishing database update
+2025-12-06 12:34:00,033 - root - INFO - Phishing database updater thread started
+2025-12-06 12:34:03,299 - root - ERROR - Error in phishing database updater: 'NoneType' object is not subscriptable
+2025-12-06 12:34:05,269 - django.utils.autoreload - INFO - C:\Users\Admin\Downloads\phishing major project\PhishGuard\backend\phishingUrlDetectionApp\views.py changed, reloading.

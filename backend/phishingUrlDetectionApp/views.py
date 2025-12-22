@@ -28,9 +28,32 @@ class Home(APIView):
 
 class Prediction(APIView):
      def get(self, request):
-         url_features=[]
-         feature_names = ['having_ip_address', 'long_url', 'shortening_service', 'having_@_symbol', 'redirection_//_symbol', 'prefix_suffix_seperation', 'sub_domains', 'https_token', 'age_of_domain', 'dns_record', 'web_traffic', 'domain_registration_length', 'statistical_report', 'iframe', 'mouse_over']
-         url = request.GET.get('url')
+        url_features=[]
+        feature_names = ['having_ip_address', 'long_url', 'shortening_service', 'having_@_symbol', 'redirection_//_symbol', 'prefix_suffix_seperation', 'sub_domains', 'https_token', 'age_of_domain', 'dns_record', 'web_traffic', 'domain_registration_length', 'statistical_report', 'iframe', 'mouse_over']
+        url = request.GET.get('url')
+        
+        # Validate URL input
+        if not url:
+            return Response({
+                "error": "URL parameter is required",
+                "url": "",
+                "featureExtractionResult": [0] * 15,
+                "predictionMade": 0,
+                "successRate": 0,
+                "phishRate": 0,
+                "detectionSource": "error"
+            }, status=400)
+        
+        # Clean and normalize URL
+        url = url.strip()
+        
+        # Add protocol if missing
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        print(f"\n{'='*60}")
+        print(f"Analyzing URL: {url}")
+        print(f"{'='*60}")
          
          # EMERGENCY OVERRIDE: Directly whitelist major domains to prevent false positives
          # This is a critical safeguard to ensure major legitimate domains are NEVER flagged as phishing
@@ -176,35 +199,57 @@ class Prediction(APIView):
              url_features.append(res_temp)
              testdata = pd.DataFrame(url_features, columns=feature_names)
              
-             # Get model instance
-             model = PhishingurldetectionappConfig.model
-             
-             # Make prediction using model
-             PredictionMade = model.predict(testdata)[0]
-             detection_source = 'ml_model'
-             
-             # Get probabilities based on model type
-             if hasattr(model, 'predict_proba'):
-                 proba = model.predict_proba(testdata)[0]
-                 
-                 # Ensure there are exactly 2 classes in the probability output
-                 if len(proba) == 2:
-                     # Adjust confidence for well-known domains 
-                     if domain and any(trusted in domain for trusted in ["google", "facebook", "microsoft", "apple", "amazon", "github"]):
-                         url_success_rate = 98.0
-                         url_phished_rate = 2.0
-                         PredictionMade = 0  # Force legitimate for well-known domains
-                     else:
-                         url_success_rate = round(proba[0] * 100, 2)
-                         url_phished_rate = round(proba[1] * 100, 2)
-                 else:
-                     # Fallback if probabilities don't have the expected format
-                     url_success_rate = 75.0 if PredictionMade == 0 else 25.0
-                     url_phished_rate = 25.0 if PredictionMade == 0 else 75.0
-             else:
-                 # If model doesn't support predict_proba
-                 url_success_rate = 75.0 if PredictionMade == 0 else 25.0
-                 url_phished_rate = 25.0 if PredictionMade == 0 else 75.0
+            # Get model instance
+            model = PhishingurldetectionappConfig.model
+            
+            # Make prediction using model
+            PredictionMade = model.predict(testdata)[0]
+            detection_source = 'ml_model'
+            
+            # Get probabilities based on model type
+            if hasattr(model, 'predict_proba'):
+                proba = model.predict_proba(testdata)[0]
+                
+                # Ensure there are exactly 2 classes in the probability output
+                if len(proba) == 2:
+                    # Adjust confidence for well-known domains 
+                    if domain and any(trusted in domain for trusted in ["google", "facebook", "microsoft", "apple", "amazon", "github"]):
+                        url_success_rate = 99.5
+                        url_phished_rate = 0.5
+                        PredictionMade = 0  # Force legitimate for well-known domains
+                    else:
+                        # Calculate confidence with adjustments based on feature patterns
+                        base_success_rate = proba[0] * 100
+                        base_phish_rate = proba[1] * 100
+                        
+                        # Analyze features for additional confidence adjustment
+                        suspicious_count = sum([
+                            res_temp[0],  # IP address
+                            res_temp[2],  # URL shortener
+                            res_temp[3],  # @ symbol
+                            res_temp[4],  # Double slash redirection
+                            res_temp[7],  # HTTPS in domain
+                        ])
+                        
+                        # If multiple suspicious features, increase phishing confidence
+                        if suspicious_count >= 2:
+                            confidence_boost = min(suspicious_count * 5, 20)
+                            base_phish_rate = min(base_phish_rate + confidence_boost, 99)
+                            base_success_rate = 100 - base_phish_rate
+                        
+                        url_success_rate = round(base_success_rate, 2)
+                        url_phished_rate = round(base_phish_rate, 2)
+                else:
+                    # Fallback if probabilities don't have the expected format
+                    url_success_rate = 80.0 if PredictionMade == 0 else 20.0
+                    url_phished_rate = 20.0 if PredictionMade == 0 else 80.0
+            else:
+                # If model doesn't support predict_proba
+                url_success_rate = 80.0 if PredictionMade == 0 else 20.0
+                url_phished_rate = 20.0 if PredictionMade == 0 else 80.0
+            
+            print(f"ML Model Prediction: {'LEGITIMATE' if PredictionMade == 0 else 'PHISHING'}")
+            print(f"Confidence - Safe: {url_success_rate}%, Suspicious: {url_phished_rate}%")
              
              # Convert NumPy types to Python native types for JSON serialization
              res_temp_list = res_temp.tolist()

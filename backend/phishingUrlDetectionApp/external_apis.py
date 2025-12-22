@@ -1,6 +1,7 @@
 """
 External APIs integration module for the phishing URL detection app.
 This module provides functions to check URLs against VirusTotal, Cloudflare, and IBM X-Force Exchange.
+Optimized with connection pooling and efficient caching for better performance.
 """
 
 import os
@@ -11,6 +12,36 @@ import base64
 import requests
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse, quote
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
+# Create a session with connection pooling and retry strategy
+def create_session():
+    """Create an optimized requests session with connection pooling"""
+    session = requests.Session()
+    
+    # Configure retry strategy
+    retry_strategy = Retry(
+        total=2,  # Maximum 2 retries
+        backoff_factor=0.5,  # Wait 0.5s, 1s between retries
+        status_forcelist=[429, 500, 502, 503, 504],  # Retry on these status codes
+        method_whitelist=["HEAD", "GET", "POST", "OPTIONS"]
+    )
+    
+    # Mount adapter with connection pooling
+    adapter = HTTPAdapter(
+        max_retries=retry_strategy,
+        pool_connections=10,  # Number of connection pools
+        pool_maxsize=20  # Max connections in pool
+    )
+    
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    
+    return session
+
+# Global session for connection reuse
+_session = create_session()
 
 
 class ExternalApiChecker:
@@ -26,6 +57,9 @@ class ExternalApiChecker:
         self.cloudflare_email = os.environ.get('CLOUDFLARE_EMAIL', '')
         self.xforce_api_key = os.environ.get('IBM_XFORCE_API_KEY', '')
         self.xforce_api_password = os.environ.get('IBM_XFORCE_API_PASSWORD', '')
+        
+        # Use the shared session for connection pooling
+        self.session = _session
     
     def check_google_safebrowsing(self, url: str) -> Dict[str, Any]:
         """
@@ -37,7 +71,8 @@ class ExternalApiChecker:
         Returns:
             Dict with results including is_phishing boolean and confidence score
         """
-        if not self.google_safebrowsing_api_key:
+        if not self.google_safebrowsing_api_key or self.google_safebrowsing_api_key.strip() == '':
+            print("Google Safe Browsing API key not configured - skipping")
             return {'status': 'error', 'message': 'Google Safe Browsing API key not configured'}
         
         try:
@@ -61,10 +96,13 @@ class ExternalApiChecker:
                 }
             }
             
-            response = requests.post(api_url, json=payload, timeout=10)
+            print(f"Calling Google Safe Browsing API for: {url}")
+            response = self.session.post(api_url, json=payload, timeout=10)
+            print(f"Google Safe Browsing response status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
+                print(f"Google Safe Browsing result: {result}")
                 
                 # Check if any threats were found
                 if 'matches' in result and len(result['matches']) > 0:
@@ -73,6 +111,7 @@ class ExternalApiChecker:
                     # SOCIAL_ENGINEERING is specifically for phishing
                     is_phishing = 'SOCIAL_ENGINEERING' in threat_types or 'MALWARE' in threat_types
                     
+                    print(f"Google Safe Browsing detected threats: {threat_types}")
                     return {
                         'status': 'success',
                         'is_phishing': is_phishing,
@@ -82,6 +121,7 @@ class ExternalApiChecker:
                     }
                 else:
                     # No threats found - URL is safe
+                    print("Google Safe Browsing: No threats found")
                     return {
                         'status': 'success',
                         'is_phishing': False,
@@ -89,10 +129,20 @@ class ExternalApiChecker:
                         'message': 'No threats found',
                         'source': 'google_safebrowsing'
                     }
+            elif response.status_code == 400:
+                print(f"Google Safe Browsing API error 400: {response.text}")
+                return {'status': 'error', 'message': f"Invalid request - check API key: {response.text[:200]}"}
+            elif response.status_code == 403:
+                print("Google Safe Browsing API error 403: Invalid API key or quota exceeded")
+                return {'status': 'error', 'message': 'Invalid API key or quota exceeded'}
             
+            print(f"Google Safe Browsing HTTP Error: {response.status_code} - {response.text[:200]}")
             return {'status': 'error', 'message': f"HTTP Error: {response.status_code}"}
             
         except Exception as e:
+            print(f"Google Safe Browsing exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {'status': 'error', 'message': f"Exception: {str(e)}"}
     
     def check_urlscan(self, url: str) -> Dict[str, Any]:
@@ -207,7 +257,7 @@ class ExternalApiChecker:
             # URL ID must be base64 encoded and URL safe
             url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
             
-            response = requests.get(
+            response = self.session.get(
                 f"https://www.virustotal.com/api/v3/urls/{url_id}",
                 headers=headers,
                 timeout=10
@@ -284,7 +334,7 @@ class ExternalApiChecker:
             }
             
             # Use Cloudflare's Security Insights API (this is a simplified example)
-            response = requests.get(
+            response = self.session.get(
                 f"https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules?mode=block&configuration_target=ip&configuration_value={domain}",
                 headers=headers,
                 timeout=10
@@ -345,7 +395,7 @@ class ExternalApiChecker:
             # URL needs to be URL-encoded for the API
             encoded_url = quote(url, safe='')
             
-            response = requests.get(
+            response = self.session.get(
                 f"https://api.xforce.ibmcloud.com/url/{encoded_url}",
                 headers=headers,
                 timeout=10
@@ -379,10 +429,73 @@ class ExternalApiChecker:
         except Exception as e:
             return {'status': 'error', 'message': f"Exception: {str(e)}", 'source': 'xforce'}
     
+    def check_free_phish_feeds(self, url: str) -> Dict[str, Any]:
+        """
+        Check URL against FREE phishing feeds (no API key needed)
+        Uses PhishTank and OpenPhish public feeds
+        
+        Args:
+            url: The URL to check
+            
+        Returns:
+            Dict with results or error status
+        """
+        try:
+            domain = urlparse(url).netloc.lower()
+            
+            # Check PhishTank verified phishing feed (free, no key needed for checking)
+            try:
+                print(f"Checking PhishTank free feed for: {domain}")
+                phishtank_url = f"http://checkurl.phishtank.com/checkurl/"
+                data = {'url': url, 'format': 'json'}
+                
+                response = self.session.post(phishtank_url, data=data, timeout=10)
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('results', {}).get('in_database', False):
+                        is_valid_phish = result['results'].get('valid', False)
+                        if is_valid_phish:
+                            print(f"PhishTank: URL is confirmed phishing!")
+                            return {
+                                'status': 'success',
+                                'is_phishing': True,
+                                'confidence': 0.95,
+                                'source': 'phishtank_free',
+                                'details': result['results']
+                            }
+            except Exception as e:
+                print(f"PhishTank free check error: {e}")
+            
+            # Check OpenPhish free feed
+            try:
+                print(f"Checking OpenPhish feed...")
+                # OpenPhish provides a direct download feed
+                openphish_url = "https://openphish.com/feed.txt"
+                response = self.session.get(openphish_url, timeout=10)
+                
+                if response.status_code == 200:
+                    feed = response.text
+                    if url in feed or domain in feed:
+                        print(f"OpenPhish: URL found in phishing feed!")
+                        return {
+                            'status': 'success',
+                            'is_phishing': True,
+                            'confidence': 0.92,
+                            'source': 'openphish_free'
+                        }
+            except Exception as e:
+                print(f"OpenPhish free check error: {e}")
+            
+            return {'status': 'no_match', 'message': 'Not found in free feeds'}
+            
+        except Exception as e:
+            print(f"Free feed check exception: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
     def check_all_apis(self, url: str) -> Dict[str, Any]:
         """
         Check a URL against all configured external APIs.
-        Priority: Google Safe Browsing > URLScan.io > VirusTotal > X-Force > Cloudflare
+        Priority: Free Feeds > Google Safe Browsing > URLScan.io > VirusTotal > X-Force > Cloudflare
         
         Args:
             url: The URL to check
@@ -392,66 +505,101 @@ class ExternalApiChecker:
         """
         results = {}
         
-        # PRIORITY 1: Check Google Safe Browsing first (most reliable for phishing)
-        if self.google_safebrowsing_api_key:
+        # PRIORITY 0: Check FREE feeds first (no API keys needed)
+        print(f"\n{'='*60}")
+        print(f"Checking URL with external APIs: {url}")
+        print(f"{'='*60}")
+        
+        free_result = self.check_free_phish_feeds(url)
+        results['free_feeds'] = free_result
+        
+        if free_result.get('status') == 'success' and free_result.get('is_phishing'):
+            print(f"URL found in free phishing feeds!")
+            return {
+                'is_phishing': True,
+                'confidence': free_result.get('confidence', 0.9),
+                'source': free_result.get('source', 'free_feeds'),
+                'details': results
+            }
+        
+        # PRIORITY 1: Check Google Safe Browsing (if API key configured)
+        if self.google_safebrowsing_api_key and self.google_safebrowsing_api_key.strip():
             gsb_result = self.check_google_safebrowsing(url)
             results['google_safebrowsing'] = gsb_result
             
             # If we get a definitive result (high confidence), use it immediately
             if gsb_result.get('status') == 'success' and gsb_result.get('confidence', 0) >= 0.95:
+                print(f"Google Safe Browsing provided definitive result")
                 return {
                     'is_phishing': gsb_result.get('is_phishing', False),
                     'confidence': gsb_result.get('confidence', 0),
                     'source': 'google_safebrowsing',
                     'details': results
                 }
+        else:
+            print("Google Safe Browsing API key not configured - skipping")
         
         # PRIORITY 2: Check URLScan.io (comprehensive analysis)
-        if self.urlscan_api_key:
+        if self.urlscan_api_key and self.urlscan_api_key.strip():
+            print("Checking URLScan.io...")
             urlscan_result = self.check_urlscan(url)
             results['urlscan'] = urlscan_result
             
             # If we get a definitive result, use that
             if urlscan_result.get('status') == 'success' and urlscan_result.get('confidence', 0) >= 0.85:
+                print(f"URLScan.io provided definitive result")
                 return {
                     'is_phishing': urlscan_result.get('is_phishing', False),
                     'confidence': urlscan_result.get('confidence', 0),
                     'source': 'urlscan',
                     'details': results
                 }
+        else:
+            print("URLScan.io API key not configured - skipping")
         
         # PRIORITY 3: Check VirusTotal if configured
-        if self.virustotal_api_key:
+        if self.virustotal_api_key and self.virustotal_api_key.strip():
+            print("Checking VirusTotal...")
             vt_result = self.check_virustotal(url)
             results['virustotal'] = vt_result
             
             # If we get a definitive result, use that
             if vt_result.get('status') == 'success' and vt_result.get('confidence', 0) > 0.7:
+                print(f"VirusTotal provided definitive result")
                 return {
                     'is_phishing': vt_result.get('is_phishing', False),
                     'confidence': vt_result.get('confidence', 0),
                     'source': 'virustotal',
                     'details': results
                 }
+        else:
+            print("VirusTotal API key not configured - skipping")
         
         # PRIORITY 4: Check IBM X-Force if configured
-        if self.xforce_api_key and self.xforce_api_password:
+        if self.xforce_api_key and self.xforce_api_password and self.xforce_api_key.strip():
+            print("Checking IBM X-Force...")
             xforce_result = self.check_xforce(url)
             results['xforce'] = xforce_result
             
             # If we get a definitive result, use that
             if xforce_result.get('status') == 'success' and xforce_result.get('confidence', 0) > 0.7:
+                print(f"IBM X-Force provided definitive result")
                 return {
                     'is_phishing': xforce_result.get('is_phishing', False),
                     'confidence': xforce_result.get('confidence', 0),
                     'source': 'xforce',
                     'details': results
                 }
+        else:
+            print("IBM X-Force API credentials not configured - skipping")
         
         # PRIORITY 5: Check Cloudflare last if configured
-        if self.cloudflare_api_key and self.cloudflare_email:
+        if self.cloudflare_api_key and self.cloudflare_email and self.cloudflare_api_key.strip():
+            print("Checking Cloudflare...")
             cf_result = self.check_cloudflare(url)
             results['cloudflare'] = cf_result
+        else:
+            print("Cloudflare API credentials not configured - skipping")
         
         # Analyze all results to determine final verdict
         phishing_votes = 0
@@ -459,12 +607,17 @@ class ExternalApiChecker:
         total_confidence = 0
         api_count = 0
         
+        print(f"\nAnalyzing results from {len(results)} API checks:")
         for api_name, result in results.items():
+            print(f"  - {api_name}: {result.get('status', 'unknown')}")
             if result.get('status') == 'success':
                 api_count += 1
                 confidence = result.get('confidence', 0.5)
+                is_phish = result.get('is_phishing', False)
                 
-                if result.get('is_phishing', False):
+                print(f"    → {'PHISHING' if is_phish else 'SAFE'} (confidence: {confidence:.2f})")
+                
+                if is_phish:
                     phishing_votes += confidence
                 else:
                     safe_votes += confidence
@@ -473,6 +626,7 @@ class ExternalApiChecker:
         
         # Make final determination
         if api_count == 0:
+            print("No API results available - will fall back to ML model")
             return {'status': 'error', 'message': 'No API results available'}
         
         is_phishing = phishing_votes > safe_votes
@@ -480,11 +634,18 @@ class ExternalApiChecker:
         # Calculate weighted confidence
         confidence = phishing_votes / total_confidence if is_phishing else safe_votes / total_confidence
         
+        print(f"\nFinal verdict: {'PHISHING' if is_phishing else 'SAFE'}")
+        print(f"  Phishing votes: {phishing_votes:.2f}")
+        print(f"  Safe votes: {safe_votes:.2f}")
+        print(f"  Confidence: {confidence:.2f}")
+        print(f"{'='*60}\n")
+        
         return {
             'is_phishing': is_phishing,
             'confidence': min(confidence, 0.95),  # Cap at 0.95 confidence
             'source': 'combined_apis',
-            'details': results
+            'details': results,
+            'api_count': api_count
         }
 
 

@@ -16,7 +16,12 @@
   gap: 10px;
   margin-bottom: 5px;
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff 0%, #a78bfa 50%, #7e3af2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeInDown 0.8s ease-out;
 }
 
 .analysis-description {
@@ -79,24 +84,52 @@ textarea.form-control {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #4f46e5;
+  background: linear-gradient(135deg, #7e3af2 0%, #6929d4 100%);
   color: white;
   padding: 12px 24px;
   border: none;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
+  box-shadow: 0 4px 12px rgba(126, 58, 242, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.analyze-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.analyze-button:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .analyze-button:hover {
-  background-color: #4338ca;
+  background: linear-gradient(135deg, #6929d4 0%, #5a1fc4 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(126, 58, 242, 0.6);
+}
+
+.analyze-button:active {
+  transform: translateY(0);
 }
 
 .analyze-button:disabled {
-  background-color: #6b7280;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Keep existing styles for results display */
@@ -165,19 +198,50 @@ textarea.form-control {
 }
 
 .card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  border: 1px solid rgba(126, 58, 242, 0.1);
   overflow: hidden;
-  background-color: var(--card-bg);
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(28, 31, 38, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(126, 58, 242, 0.15);
+  border-color: rgba(126, 58, 242, 0.2);
 }
 
 .card-header {
-  background-color: var(--card-header-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, var(--card-header-bg) 0%, rgba(37, 37, 37, 0.8) 100%);
+  border-bottom: 1px solid rgba(126, 58, 242, 0.1);
   padding: 1rem 1.25rem;
   font-weight: 600;
   color: var(--text-color);
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .progress {

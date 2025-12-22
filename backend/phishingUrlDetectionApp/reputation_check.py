@@ -412,16 +412,58 @@ class ReputationChecker:
         """Update the phishing database from external sources"""
         print("Updating phishing database...")
         
-        # Update from PhishTank
-        self._update_from_phishtank()
-        
-        # Update from OpenPhish
-        self._update_from_openphish()
-        
-        # Update from URLhaus
-        self._update_from_urlhaus()
-        
-        print("Phishing database update completed")
+        try:
+            # Check if update is needed (based on last update time)
+            last_update = self._get_last_update_time('phishtank')
+            if last_update and time.time() - last_update < 6 * 3600:
+                return {
+                    'status': 'skipped',
+                    'message': 'Database was recently updated. Skipping.'
+                }
+            
+            updates_count = 0
+            errors = []
+            
+            # Update from PhishTank
+            try:
+                self._update_from_phishtank()
+                updates_count += 1
+            except Exception as e:
+                errors.append(f"PhishTank: {str(e)}")
+            
+            # Update from OpenPhish
+            try:
+                self._update_from_openphish()
+                updates_count += 1
+            except Exception as e:
+                errors.append(f"OpenPhish: {str(e)}")
+            
+            # Update from URLhaus
+            try:
+                self._update_from_urlhaus()
+                updates_count += 1
+            except Exception as e:
+                errors.append(f"URLhaus: {str(e)}")
+            
+            print("Phishing database update completed")
+            
+            if updates_count > 0:
+                return {
+                    'status': 'success',
+                    'message': f'Successfully updated from {updates_count} source(s). Errors: {len(errors)}',
+                    'errors': errors
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': 'Failed to update from any source',
+                    'errors': errors
+                }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Update failed: {str(e)}'
+            }
     
     def _update_from_phishtank(self):
         """Update phishing database from PhishTank"""
@@ -467,14 +509,103 @@ class ReputationChecker:
             print(f"Error updating from PhishTank: {e}")
     
     def _update_from_openphish(self):
-        """Update phishing database from OpenPhish"""
-        # Similar implementation as PhishTank
-        pass
+        """Update phishing database from OpenPhish feed"""
+        last_update = self._get_last_update_time('openphish')
+        
+        # Only update if it's been more than 12 hours
+        if last_update and time.time() - last_update < 12 * 3600:
+            print("OpenPhish database is up to date")
+            return
+            
+        try:
+            print("Downloading OpenPhish database...")
+            url = 'https://openphish.com/feed.txt'
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                urls = response.text.strip().split('\n')
+                
+                # Process and store in database
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                
+                count = 0
+                for phish_url in urls[:1000]:  # Limit to prevent overload
+                    try:
+                        parsed_url = urlparse(phish_url)
+                        domain = parsed_url.netloc.lower()
+                        
+                        if domain:
+                            self._update_cache(phish_url, domain, True, 'openphish')
+                            count += 1
+                    except Exception as e:
+                        print(f"Error processing URL {phish_url}: {e}")
+                        continue
+                
+                conn.commit()
+                conn.close()
+                
+                # Update last update time
+                self._update_last_update_time('openphish')
+                print(f"Added {count} sites from OpenPhish")
+            else:
+                print(f"Error downloading OpenPhish database: {response.status_code}")
+                
+        except Exception as e:
+            print(f"Error updating from OpenPhish: {e}")
     
     def _update_from_urlhaus(self):
         """Update phishing database from URLhaus"""
-        # Similar implementation as PhishTank
-        pass
+        last_update = self._get_last_update_time('urlhaus')
+        
+        # Only update if it's been more than 12 hours
+        if last_update and time.time() - last_update < 12 * 3600:
+            print("URLhaus database is up to date")
+            return
+            
+        try:
+            print("Downloading URLhaus database...")
+            url = 'https://urlhaus.abuse.ch/downloads/csv_recent/'
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                lines = response.text.strip().split('\n')
+                # Skip comment lines and header
+                data_lines = [line for line in lines if not line.startswith('#')]
+                
+                if len(data_lines) > 1:
+                    data_lines = data_lines[1:]  # Skip header
+                    
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    
+                    count = 0
+                    for line in data_lines[:1000]:  # Limit to prevent overload
+                        try:
+                            fields = line.split(',')
+                            if len(fields) >= 3:
+                                phish_url = fields[2].strip('"')
+                                parsed_url = urlparse(phish_url)
+                                domain = parsed_url.netloc.lower()
+                                
+                                if domain:
+                                    self._update_cache(phish_url, domain, True, 'urlhaus')
+                                    count += 1
+                        except Exception as e:
+                            print(f"Error processing URLhaus line: {e}")
+                            continue
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    # Update last update time
+                    self._update_last_update_time('urlhaus')
+                    print(f"Added {count} sites from URLhaus")
+            else:
+                print(f"Error downloading URLhaus database: {response.status_code}")
+                
+        except Exception as e:
+            print(f"Error updating from URLhaus: {e}")
     
     def _get_last_update_time(self, source):
         """Get the last update time for a source"""

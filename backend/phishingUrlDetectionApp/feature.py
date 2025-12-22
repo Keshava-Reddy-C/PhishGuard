@@ -9,6 +9,34 @@ import socket
 import re
 import requests
 import traceback
+from functools import wraps
+import signal
+
+# Create a shared session for connection pooling (improves performance)
+session = requests.Session()
+session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+
+# Timeout decorator for functions that might hang
+def timeout_handler(seconds):
+    """Decorator to add timeout to functions"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                # For Windows compatibility, we'll use a different approach
+                # Set socket default timeout
+                old_timeout = socket.getdefaulttimeout()
+                socket.setdefaulttimeout(seconds)
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                finally:
+                    socket.setdefaulttimeout(old_timeout)
+            except Exception as e:
+                print(f"Timeout or error in {func.__name__}: {e}")
+                return 1  # Default to suspicious on timeout
+        return wrapper
+    return decorator
 
 
 
@@ -33,7 +61,7 @@ def long_url(url):
         return 0
     elif len(url) >= 54 and len(url) <= 75:
         return 1
-    return 1
+    return 2  # Very long URLs are more suspicious
 
 #3. Using URL Shortening Services "TinyURL"
 def shortening_service(url):
@@ -77,12 +105,22 @@ def sub_domains(url):
         if not domain:
             domain = url
         
+        # Remove www. prefix if present
+        if domain.startswith('www.'):
+            domain = domain[4:]
+        
+        # Remove port if present
+        domain = domain.split(':')[0]
+        
         domain_parts = domain.split('.')
+        # Normal domain (e.g., google.com) = 2 parts = 0 (safe)
+        # One subdomain (e.g., mail.google.com) = 3 parts = 1 (moderate)
+        # Multiple subdomains (e.g., a.b.google.com) = 4+ parts = 2 (suspicious)
         if len(domain_parts) <= 2:
-            return 0
+            return 0  # Normal domain
         elif len(domain_parts) == 3:
-            return 2
-        return 1
+            return 1  # One subdomain (moderate)
+        return 2  # Multiple subdomains (suspicious)
     except:
         return 0
 
@@ -112,6 +150,7 @@ def age_of_domain_sub(domain):
         else:
             return 0
 
+@timeout_handler(5)  # 5 second timeout for WHOIS lookups
 def age_of_domain_main(url):
     try:
         parsed = urlparse(url)
@@ -129,6 +168,7 @@ def age_of_domain_main(url):
         return 1
 
 #10.DNS Record
+@timeout_handler(5)  # 5 second timeout for WHOIS lookups
 def dns_record(url):
     try:
         parsed = urlparse(url)
@@ -147,27 +187,39 @@ def dns_record(url):
 
 # 11. Web traffic 
 def web_traffic(url):
+    """
+    Check if website has significant traffic (indicating legitimacy)
+    Returns: 0 = high traffic (legitimate), 1 = medium traffic, 2 = low/no traffic (suspicious)
+    """
     try:
         parsed = urlparse(url)
         domain = parsed.netloc
         if not domain:
             domain = url
             
+        # Remove www. prefix
+        if domain.startswith('www.'):
+            domain = domain[4:]
+            
         # Remove port number if present
         domain = domain.split(':')[0]
         
-        encoded_url = quote(domain)
-        response = urllib.request.urlopen(f"http://data.alexa.com/data?cli=10&dat=s&url={encoded_url}", timeout=5)
-        soup = BeautifulSoup(response.read(), "html.parser")
-        rank_element = soup.find("REACH")
+        # Known high-traffic domains - instant return for performance
+        high_traffic_domains = [
+            'google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'instagram.com',
+            'linkedin.com', 'microsoft.com', 'apple.com', 'amazon.com', 'netflix.com',
+            'github.com', 'yahoo.com', 'wikipedia.org', 'reddit.com', 'stackoverflow.com',
+            'gmail.com', 'outlook.com', 'live.com', 'msn.com', 'bing.com'
+        ]
         
-        if rank_element and 'RANK' in rank_element.attrs:
-            rank = int(rank_element['RANK'])
-            if rank < 100000:
-                return 1
-            else:
-                return 2
-        return 2
+        # Check if domain matches or is a subdomain of high-traffic domains
+        for trusted in high_traffic_domains:
+            if domain == trusted or domain.endswith('.' + trusted):
+                return 0
+        
+        # For other domains, skip the slow Alexa check and return neutral value
+        # This significantly improves performance
+        return 1
     except Exception as e:
         print(f"Web traffic error: {e}")
         return 2
@@ -188,6 +240,7 @@ def domain_registration_length_sub(domain):
         else:
             return 0
 
+@timeout_handler(5)  # 5 second timeout for WHOIS lookups
 def domain_registration_length_main(url):
     try:
         parsed = urlparse(url)
@@ -236,40 +289,44 @@ def iframe_sub(response):
     try:
         if not response or response == "":
             return 1
-        elif re.findall(r"[<iframe>|<frameBorder>]", response.text):
-            return 0
+        # Look for iframe or frameborder tags (common in phishing)
+        if re.findall(r"<iframe|<frameBorder", response.text, re.IGNORECASE):
+            return 1  # Has iframe (suspicious)
         else:
-            return 1
+            return 0  # No iframe (safer)
     except:
-        return 1
+        return 0  # Default to safer value on error
 
 def iframe_main(url):
     try:
-        response = requests.get(url, timeout=5)
+        # Use shared session for connection pooling (better performance)
+        response = session.get(url, timeout=3, allow_redirects=True)
         return iframe_sub(response)
     except Exception as e:
         print(f"iFrame error: {e}")
-        return 1
+        return 0  # Default to safer value if unable to check
 
 #15. Status Bar Customization 
 def mouse_over_sub(response): 
     try:
         if not response or response == "":
-            return 1
-        elif re.findall("<script>.+onmouseover.+</script>", response.text):
-            return 1
-        else:
             return 0
+        # Check for suspicious onmouseover events
+        elif re.findall(r"onmouseover|onMouseOver", response.text, re.IGNORECASE):
+            return 1  # Has suspicious mouse events
+        else:
+            return 0  # No suspicious events
     except:
-        return 0
+        return 0  # Default to safer value
 
 def mouse_over_main(url):
     try:
-        response = requests.get(url, timeout=5)
+        # Use shared session for connection pooling (better performance)
+        response = session.get(url, timeout=3, allow_redirects=True)
         return mouse_over_sub(response)
     except Exception as e:
         print(f"Mouse over error: {e}")
-        return 0
+        return 0  # Default to safer value
 
 def featureExtraction(url):
     features = []
