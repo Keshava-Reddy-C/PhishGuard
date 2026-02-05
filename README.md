@@ -215,7 +215,7 @@ npm start
 ```
 
 ### ⚡ Quick Start Script
-```bash
+bash
 python scripts/run_servers.py
 
 
